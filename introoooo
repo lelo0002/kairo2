@@ -1,0 +1,91 @@
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- Setup blur
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = Lighting
+
+local blurTweenIn = TweenService:Create(blur, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = 24})
+local blurTweenOut = TweenService:Create(blur, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = 0})
+
+-- GUI setup
+local gui = Instance.new("ScreenGui")
+gui.Name = "OrinIntro"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = PlayerGui
+
+local container = Instance.new("Frame")
+container.Size = UDim2.new(1, 0, 1, 0)
+container.BackgroundTransparency = 1
+container.Parent = gui
+
+-- Final name layout
+local text = {"O", "R", "I", "N", ".", "L", "O", "L"}
+local spacing = 40
+local letters = {}
+
+-- Convert RGB to Color3
+local mainColor = Color3.fromRGB(126, 184, 200)
+
+-- Calculate horizontal centering
+local totalWidth = #text * spacing
+local startX = 0.5 - ((totalWidth / 2) / workspace.CurrentCamera.ViewportSize.X)
+
+-- Create letters
+for i, char in ipairs(text) do
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0, 36, 0, 60)
+	label.Position = UDim2.new(startX + (i - 1) * (spacing / workspace.CurrentCamera.ViewportSize.X), 0, 0.3, -200)
+	label.AnchorPoint = Vector2.new(0.5, 0.5)
+	label.Text = char
+	label.TextSize = 40
+	label.Font = Enum.Font.GothamBold
+	label.BackgroundTransparency = 1
+	label.TextColor3 = mainColor
+	label.TextTransparency = 1
+
+	-- Thin outline
+	label.TextStrokeTransparency = 0.4
+	label.TextStrokeColor3 = Color3.new(0,0,0)
+
+	label.Parent = container
+	table.insert(letters, label)
+end
+
+-- Animate blur in
+blurTweenIn:Play()
+
+-- Drop-in letters one by one
+task.spawn(function()
+	for i, label in ipairs(letters) do
+		local delayTime = 0.3 + (i - 1) * 0.1 + math.random(0, 10) / 100 -- ~0.3–0.7s staggered
+		task.delay(delayTime, function()
+			local dropTween = TweenService:Create(label, TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
+				Position = UDim2.new(label.Position.X.Scale, 0, 0.5, 0),
+				TextTransparency = 0
+			})
+			dropTween:Play()
+		end)
+	end
+end)
+
+-- Clean up and fade out
+task.delay(4, function()
+	blurTweenOut:Play()
+
+	for _, label in ipairs(letters) do
+		local tween = TweenService:Create(label, TweenInfo.new(1), {TextTransparency = 1})
+		tween:Play()
+	end
+
+	task.delay(1, function()
+		gui:Destroy()
+		blur:Destroy()
+	end)
+end)
